@@ -24,6 +24,8 @@ public class PlayerMovement : MonoBehaviour
     public float climbCheckDist = 1f;
     public float wallJumpPush = 5f;
     public float maxStamina = 5f;
+    public float ledgeHopUp = 7f;
+    public float ledgeHopForward = 4f;
     public KeyCode climbKey = KeyCode.E;
     public LayerMask climbMask;
 
@@ -41,6 +43,7 @@ public class PlayerMovement : MonoBehaviour
 
     float stamina;
     float regrabTimer;
+    float controlLock;
 
     void Awake()
     {
@@ -62,6 +65,7 @@ public class PlayerMovement : MonoBehaviour
     void FixedUpdate()
     {
         regrabTimer -= Time.fixedDeltaTime;
+        controlLock -= Time.fixedDeltaTime;
 
         CheckGround();
         CheckClimb();
@@ -105,8 +109,11 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(sprintKey)) speed *= sprintMultiplier;
 
         Vector3 vel = rigidBody.linearVelocity;
-        vel.x = dir.x * speed;
-        vel.z = dir.z * speed;
+        if (controlLock <= 0f)
+        {
+            vel.x = dir.x * speed;
+            vel.z = dir.z * speed;
+        }
         rigidBody.linearVelocity = vel;
 
         if (dir.sqrMagnitude > 0.01f)
@@ -153,6 +160,14 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+        // ledge climbing
+        if (!wallAhead)
+        {
+            if (input.y > 0f) LedgeHop();
+            else StopClimbing();
+            return;
+        }
+
         if (grounded && input.y < 0f) StopClimbing(); // pressing down while standing on ground
 
     }
@@ -173,6 +188,7 @@ public class PlayerMovement : MonoBehaviour
         {
             StopClimbing();
             rigidBody.linearVelocity = wallHit.normal * wallJumpPush + Vector3.up * jumpForce;
+            controlLock = 0.25f;
         }
     }
 
@@ -182,6 +198,14 @@ public class PlayerMovement : MonoBehaviour
         rigidBody.useGravity = true;
         regrabTimer = 0.3f;
     }
+
+    void LedgeHop()
+    {
+        StopClimbing();
+        rigidBody.linearVelocity = transform.forward * ledgeHopForward + Vector3.up * ledgeHopUp;
+        controlLock = 0.3f;
+    }
+
 
     void OnGUI()
     {
