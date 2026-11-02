@@ -387,6 +387,10 @@ MonoBehaviour:
   mainCamera: {fileID: 330585546}
   moveSpeed: 6
   turnSpeed: 12
+  jumpForce: 7
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!54 &406169305
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -553,7 +557,6 @@ GameObject:
   - component: {fileID: 414295317}
   - component: {fileID: 414295316}
   - component: {fileID: 414295315}
-  - component: {fileID: 414295314}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
@@ -561,18 +564,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &414295314
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 414295313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 49b1d61364578448cb5b0d97772c6358, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
 --- !u!64 &414295315
 MeshCollider:
   m_ObjectHideFlags: 0
