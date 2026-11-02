@@ -17,6 +17,7 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 7f;
     public LayerMask groundMask;
     public float fallMultiplier = 2;
+    public float coyoteTime = 0.12f;
 
     [Header("Climbing")]
     public float climbSpeed = 3f;
@@ -26,11 +27,15 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode climbKey = KeyCode.E;
     public LayerMask climbMask;
 
+    /* 
+     * Game state vars
+     */
     Rigidbody rigidBody;
     CapsuleCollider capsule;
     Vector2 input;
     bool jumpPressed;
     bool grounded;
+    float coyoteCounter;
     bool climbing;
     RaycastHit wallHit;
 
@@ -83,6 +88,10 @@ public class PlayerMovement : MonoBehaviour
         Bounds b = capsule.bounds;
         Vector3 feet = new Vector3(b.center.x, b.min.y + 0.1f, b.center.z);
         grounded = Physics.CheckSphere(feet, 0.25f, groundMask);
+
+        // refill coyote time when standing and airbone should quickly decrement
+        if (grounded && rigidBody.linearVelocity.y <= 0.1f) coyoteCounter = coyoteTime;
+        else coyoteCounter -= Time.fixedDeltaTime;
     }
 
     void Move()
@@ -114,6 +123,7 @@ public class PlayerMovement : MonoBehaviour
             Vector3 vel = rigidBody.linearVelocity;
             vel.y = jumpForce;
             rigidBody.linearVelocity = vel;
+            coyoteCounter = 0f; // use up window to prevent double jump
         }
     }
 
