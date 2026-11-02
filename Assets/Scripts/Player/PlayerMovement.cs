@@ -15,11 +15,20 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask groundMask;
     public float fallMultiplier = 2;
 
+    [Header("Climbing")]
+    public float climbSpeed = 3f;
+    public float climbCheckDist = 1f;
+    public float wallJumpPush = 5f;
+    public KeyCode climbKey = KeyCode.E;
+    public LayerMask climbMask;
+
     Rigidbody rigidBody;
     CapsuleCollider capsule;
     Vector2 input;
     bool jumpPressed;
     bool grounded;
+    bool climbing;
+    RaycastHit wallHit;
 
     void Awake()
     {
@@ -40,9 +49,19 @@ public class PlayerMovement : MonoBehaviour
     void FixedUpdate()
     {
         CheckGround();
-        Move();
-        Jump();
-        ApplyFallGravity();
+        CheckClimb();
+
+        if (climbing)
+        {
+            Climb();
+        }
+        else
+        {
+            Move();
+            Jump();
+            ApplyFallGravity();
+        }
+
         jumpPressed = false;
     }
 
@@ -88,5 +107,36 @@ public class PlayerMovement : MonoBehaviour
         {
             rigidBody.linearVelocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1f) * Time.fixedDeltaTime;
         }
+    }
+
+    void CheckClimb()
+    {
+        bool wallAhead = Physics.Raycast(capsule.bounds.center, transform.forward,
+                                         out wallHit, climbCheckDist, climbMask);
+        bool holding = Input.GetKey(climbKey);
+
+        if (!climbing && wallAhead && holding) climbing = true;
+        if (climbing && (!wallAhead || !holding)) StopClimbing();
+    }
+
+    void Climb()
+    {
+        rigidBody.useGravity = false;
+
+        transform.rotation = Quaternion.LookRotation(-wallHit.normal); // facing wall
+        rigidBody.linearVelocity = (Vector3.up * input.y + transform.right * input.x) * climbSpeed;
+
+        // jumping off wall
+        if (jumpPressed)
+        {
+            StopClimbing();
+            rigidBody.linearVelocity = wallHit.normal * wallJumpPush + Vector3.up * jumpForce;
+        }
+    }
+
+    void StopClimbing()
+    {
+        climbing = false;
+        rigidBody.useGravity = true;
     }
 }
