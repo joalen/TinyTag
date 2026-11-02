@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     public float jumpForce = 7f;
     public LayerMask groundMask;
+    public float fallMultiplier = 2;
 
     Rigidbody rigidBody;
     CapsuleCollider capsule;
@@ -41,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
         CheckGround();
         Move();
         Jump();
+        ApplyFallGravity();
         jumpPressed = false;
     }
 
@@ -77,6 +79,14 @@ public class PlayerMovement : MonoBehaviour
             Vector3 vel = rigidBody.linearVelocity;
             vel.y = jumpForce;
             rigidBody.linearVelocity = vel;
+        }
+    }
+
+    void ApplyFallGravity()
+    {
+        if (rigidBody.linearVelocity.y < 0f)
+        {
+            rigidBody.linearVelocity += Vector3.up * Physics.gravity.y * (fallMultiplier - 1f) * Time.fixedDeltaTime;
         }
     }
 }
