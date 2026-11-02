@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
@@ -19,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     public float climbSpeed = 3f;
     public float climbCheckDist = 1f;
     public float wallJumpPush = 5f;
+    public float maxStamina = 5f;
     public KeyCode climbKey = KeyCode.E;
     public LayerMask climbMask;
 
@@ -30,6 +32,9 @@ public class PlayerMovement : MonoBehaviour
     bool climbing;
     RaycastHit wallHit;
 
+    float stamina;
+    float regrabTimer;
+
     void Awake()
     {
         rigidBody = GetComponent<Rigidbody>();
@@ -37,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
         rigidBody.freezeRotation = true;
         rigidBody.interpolation = RigidbodyInterpolation.Interpolate;
         rigidBody.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        stamina = maxStamina;
     }
 
     void Update()
@@ -48,6 +54,8 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
+        regrabTimer -= Time.fixedDeltaTime;
+
         CheckGround();
         CheckClimb();
 
@@ -60,6 +68,8 @@ public class PlayerMovement : MonoBehaviour
             Move();
             Jump();
             ApplyFallGravity();
+
+            if (grounded) stamina = Mathf.Min(maxStamina, stamina + 2f * Time.fixedDeltaTime);
         }
 
         jumpPressed = false;
@@ -111,12 +121,24 @@ public class PlayerMovement : MonoBehaviour
 
     void CheckClimb()
     {
-        bool wallAhead = Physics.Raycast(capsule.bounds.center, transform.forward,
-                                         out wallHit, climbCheckDist, climbMask);
+        bool wallAhead = Physics.Raycast(capsule.bounds.center, transform.forward, out wallHit, climbCheckDist, climbMask);
         bool holding = Input.GetKey(climbKey);
 
-        if (!climbing && wallAhead && holding) climbing = true;
-        if (climbing && (!wallAhead || !holding)) StopClimbing();
+        if (!climbing && wallAhead && holding && stamina > 0f && regrabTimer <= 0f) // only if enough stamina and didn't just let go
+        {
+            climbing = true;
+        }
+
+        if (!climbing) return;
+
+        if (!holding || stamina <= 0f || !wallAhead) // ran out of stamina or sliding from wall
+        {
+            StopClimbing();
+            return;
+        }
+
+        if (grounded && input.y < 0f) StopClimbing(); // pressing down while standing on ground
+
     }
 
     void Climb()
@@ -125,6 +147,10 @@ public class PlayerMovement : MonoBehaviour
 
         transform.rotation = Quaternion.LookRotation(-wallHit.normal); // facing wall
         rigidBody.linearVelocity = (Vector3.up * input.y + transform.right * input.x) * climbSpeed;
+
+
+        float drain = input.sqrMagnitude > 0.01f ? 1f : 0.3f; // draining stamina away for vertical climb
+        stamina -= drain * Time.fixedDeltaTime;
 
         // jumping off wall
         if (jumpPressed)
@@ -138,5 +164,11 @@ public class PlayerMovement : MonoBehaviour
     {
         climbing = false;
         rigidBody.useGravity = true;
+        regrabTimer = 0.3f;
+    }
+
+    void OnGUI()
+    {
+        GUI.Label(new Rect(10, 10, 250, 25), "Stamina: " + stamina.ToString("0.0"));
     }
 }
