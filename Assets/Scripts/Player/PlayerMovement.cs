@@ -10,6 +10,8 @@ public class PlayerMovement : MonoBehaviour
     [Header("Movement")]
     public float moveSpeed = 6f;
     public float turnSpeed = 12f;
+    public float sprintMultiplier = 1.6f;
+    public KeyCode sprintKey = KeyCode.LeftShift;
 
     [Header("Jumping")]
     public float jumpForce = 7f;
@@ -89,9 +91,13 @@ public class PlayerMovement : MonoBehaviour
         Vector3 right = mainCamera.right; right.y = 0; right.Normalize();
         Vector3 dir = (fwd * input.y + right * input.x).normalized;
 
+        // left sprinting
+        float speed = moveSpeed;
+        if (Input.GetKey(sprintKey)) speed *= sprintMultiplier;
+
         Vector3 vel = rigidBody.linearVelocity;
-        vel.x = dir.x * moveSpeed;
-        vel.z = dir.z * moveSpeed;
+        vel.x = dir.x * speed;
+        vel.z = dir.z * speed;
         rigidBody.linearVelocity = vel;
 
         if (dir.sqrMagnitude > 0.01f)
