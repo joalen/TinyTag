@@ -9,10 +9,14 @@ using UnityEngine;
 public class PlayerTagger : MonoBehaviour
 {
     public int playerIndex;
+    [Tooltip("Shown in the HUD / winner screen, e.g. DUCK")]
+    public string displayName = "PLAYER";
     [Tooltip("This player's own colour (never changes)")]
     public Color normalColor = new Color(0.25f, 0.5f, 1f);
     [Tooltip("Colour of the marker floating above whoever is it")]
     public Color itColor = new Color(1f, 0.2f, 0.15f);
+    [Tooltip("Material for the 'it' marker (set by the scene builder)")]
+    public Material markerMaterial;
 
     public bool IsIt { get; private set; }
     public bool IsFrozen => Time.time < frozenUntil;
@@ -24,11 +28,17 @@ public class PlayerTagger : MonoBehaviour
     void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
-        var body = GetComponent<Renderer>();
-        if (body != null) body.material.color = normalColor;
-        itMarker = CreateItMarker(body);
+        itMarker = CreateItMarker();
         itMarker.gameObject.SetActive(IsIt);
+        Movement.Jumped += OnJumped;
     }
+
+    void OnDestroy()
+    {
+        if (Movement != null) Movement.Jumped -= OnJumped;
+    }
+
+    void OnJumped() => Sfx.Instance?.PlaySqueak(playerIndex);
 
     void Update()
     {
@@ -48,7 +58,7 @@ public class PlayerTagger : MonoBehaviour
     public void Unfreeze() => frozenUntil = 0f;
 
     // a glowing red diamond above the head
-    Transform CreateItMarker(Renderer body)
+    Transform CreateItMarker()
     {
         var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
         marker.name = "It Marker";
@@ -62,13 +72,7 @@ public class PlayerTagger : MonoBehaviour
 
         var r = marker.GetComponent<Renderer>();
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        if (body != null)
-        {
-            var mat = new Material(body.sharedMaterial) { color = itColor };
-            mat.EnableKeyword("_EMISSION");
-            mat.SetColor("_EmissionColor", itColor * 0.5f); // a soft glow; higher washes out to pink
-            r.sharedMaterial = mat;
-        }
+        if (markerMaterial != null) r.sharedMaterial = markerMaterial;
         return t;
     }
 

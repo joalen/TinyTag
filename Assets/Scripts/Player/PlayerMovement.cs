@@ -32,6 +32,9 @@ public class PlayerMovement : MonoBehaviour
     public bool controlsEnabled = true;
     public float speedMultiplier = 1f;
 
+    /// <summary>Fired on every jump (ground jump and wall jump), e.g. for the squeak sound.</summary>
+    public event System.Action Jumped;
+
     public float Stamina => stamina;
     public bool IsClimbing => climbing;
     public bool IsGrounded => grounded;
@@ -172,6 +175,7 @@ public class PlayerMovement : MonoBehaviour
             vel.y = jumpForce;
             rigidBody.linearVelocity = vel;
             coyoteCounter = 0f; // use up window to prevent double jump
+            Jumped?.Invoke();
         }
     }
 
@@ -230,6 +234,7 @@ public class PlayerMovement : MonoBehaviour
             StopClimbing();
             rigidBody.linearVelocity = wallHit.normal * wallJumpPush + Vector3.up * jumpForce;
             controlLock = 0.25f;
+            Jumped?.Invoke();
         }
     }
 

@@ -53,8 +53,8 @@ public static class TinyTagSceneBuilder
             Spawn("Spawn P2", new Vector3(12f, spawnY, 22f), 210f),
         };
 
-        var p1 = BuildPlayer(0, spawns[0], new Color(0.25f, 0.5f, 1f));
-        var p2 = BuildPlayer(1, spawns[1], new Color(0.3f, 0.85f, 0.35f));
+        var p1 = BuildPlayer(0, spawns[0], new Color(1f, 0.85f, 0.15f));  // rubber duck
+        var p2 = BuildPlayer(1, spawns[1], new Color(0.3f, 0.75f, 0.3f));  // rubber frog
         var c1 = BuildCamera(0, p1, new Rect(0f, 0f, 0.5f, 1f));
         var c2 = BuildCamera(1, p2, new Rect(0.5f, 0f, 0.5f, 1f));
 
@@ -248,18 +248,17 @@ public static class TinyTagSceneBuilder
         go.layer = PlayerLayer;
         go.GetComponent<PlayerMovement>().moveSpeed = PlayerMoveSpeed;
 
-        go.GetComponent<Renderer>().sharedMaterial = Mat($"Player{index + 1}", color, smoothness: 0.5f);
+        // the capsule stays as the collider, but is hidden: the toy model below is what you see
+        go.GetComponent<MeshRenderer>().enabled = false;
         go.GetComponent<CapsuleCollider>().sharedMaterial = NoFriction();
 
-        // little visor so you can tell which way the player faces
-        var visor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        visor.name = "Visor";
-        Object.DestroyImmediate(visor.GetComponent<Collider>());
-        visor.transform.SetParent(go.transform, false);
-        visor.transform.localPosition = new Vector3(0, 0.45f, 0.4f);
-        visor.transform.localScale = new Vector3(0.7f, 0.22f, 0.3f);
-        visor.layer = PlayerLayer;
-        visor.GetComponent<Renderer>().sharedMaterial = Mat("Visor", new Color(0.1f, 0.1f, 0.12f), smoothness: 0.9f);
+        // model pivot sits at the feet so squash/stretch keeps it on the ground
+        var model = new GameObject(index == 0 ? "Duck Model" : "Frog Model").transform;
+        model.SetParent(go.transform, false);
+        model.localPosition = new Vector3(0f, -1f, 0f);
+        var waddle = model.gameObject.AddComponent<ToyWaddle>();
+        if (index == 0) BuildDuck(model, color);
+        else { BuildFrog(model, color); waddle.style = ToyWaddle.Style.Hop; }
 
         var input = go.GetComponent<PlayerInputHandler>();
         if (input == null) input = go.AddComponent<PlayerInputHandler>();
@@ -267,8 +266,65 @@ public static class TinyTagSceneBuilder
 
         var tagger = go.AddComponent<PlayerTagger>();
         tagger.playerIndex = index;
+        tagger.displayName = index == 0 ? "DUCK" : "FROG";
         tagger.normalColor = color;
+        tagger.markerMaterial = Mat("ItMarker", tagger.itColor, emission: tagger.itColor * 0.5f);
         return go;
+    }
+
+    // Toy models are made of squashed spheres. Positions are in the capsule's local space
+    // (capsule spans y = -1..1, radius 0.5, facing +z); Part() shifts them onto the feet pivot.
+
+    static void BuildDuck(Transform model, Color yellow)
+    {
+        var body = Mat("DuckYellow", yellow, smoothness: 0.75f); // shiny rubber
+        var beak = Mat("DuckBeak", new Color(1f, 0.5f, 0.1f), smoothness: 0.75f);
+        var eye = Mat("ToyEyeBlack", new Color(0.05f, 0.05f, 0.05f), smoothness: 0.9f);
+
+        Part(model, "Body", new Vector3(0, -0.45f, -0.05f), new Vector3(1.05f, 0.85f, 1.25f), body);
+        Part(model, "Tail", new Vector3(0, -0.18f, -0.62f), new Vector3(0.4f, 0.35f, 0.35f), body);
+        Part(model, "Wing L", new Vector3(-0.5f, -0.4f, -0.05f), new Vector3(0.18f, 0.45f, 0.7f), body);
+        Part(model, "Wing R", new Vector3(0.5f, -0.4f, -0.05f), new Vector3(0.18f, 0.45f, 0.7f), body);
+        Part(model, "Head", new Vector3(0, 0.42f, 0.2f), new Vector3(0.75f, 0.72f, 0.72f), body);
+        Part(model, "Beak", new Vector3(0, 0.32f, 0.6f), new Vector3(0.42f, 0.14f, 0.36f), beak);
+        Part(model, "Eye L", new Vector3(-0.17f, 0.55f, 0.5f), Vector3.one * 0.13f, eye);
+        Part(model, "Eye R", new Vector3(0.17f, 0.55f, 0.5f), Vector3.one * 0.13f, eye);
+    }
+
+    static void BuildFrog(Transform model, Color green)
+    {
+        var skin = Mat("FrogGreen", green, smoothness: 0.75f);
+        var belly = Mat("FrogBelly", new Color(0.85f, 0.9f, 0.55f), smoothness: 0.6f);
+        var eyeWhite = Mat("ToyEyeWhite", Color.white, smoothness: 0.9f);
+        var eye = Mat("ToyEyeBlack", new Color(0.05f, 0.05f, 0.05f), smoothness: 0.9f);
+        var mouth = Mat("FrogMouth", new Color(0.35f, 0.05f, 0.08f));
+
+        Part(model, "Body", new Vector3(0, -0.5f, -0.05f), new Vector3(1.15f, 0.95f, 1.2f), skin);
+        Part(model, "Belly", new Vector3(0, -0.55f, 0.3f), new Vector3(0.85f, 0.75f, 0.6f), belly);
+        Part(model, "Head", new Vector3(0, 0.08f, 0.18f), new Vector3(1.0f, 0.7f, 0.85f), skin);
+        Part(model, "Mouth", new Vector3(0, 0.0f, 0.58f), new Vector3(0.55f, 0.04f, 0.06f), mouth, PrimitiveType.Cube);
+        foreach (float x in new[] { -0.26f, 0.26f })
+        {
+            Part(model, "Eye", new Vector3(x, 0.42f, 0.28f), Vector3.one * 0.38f, eyeWhite);
+            Part(model, "Pupil", new Vector3(x, 0.46f, 0.44f), Vector3.one * 0.17f, eye);
+        }
+        foreach (float x in new[] { -0.55f, 0.55f })
+            Part(model, "Back Leg", new Vector3(x, -0.82f, -0.2f), new Vector3(0.38f, 0.28f, 0.75f), skin);
+        foreach (float x in new[] { -0.32f, 0.32f })
+            Part(model, "Front Foot", new Vector3(x, -0.92f, 0.45f), new Vector3(0.25f, 0.12f, 0.3f), skin);
+    }
+
+    static void Part(Transform model, string name, Vector3 capsulePos, Vector3 scale, Material mat,
+                     PrimitiveType shape = PrimitiveType.Sphere)
+    {
+        var go = GameObject.CreatePrimitive(shape);
+        go.name = name;
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        go.layer = PlayerLayer;
+        go.transform.SetParent(model, false);
+        go.transform.localPosition = capsulePos + Vector3.up; // model pivot is at the feet (y = -1)
+        go.transform.localScale = scale;
+        go.GetComponent<Renderer>().sharedMaterial = mat;
     }
 
     static ThirdPersonCamera BuildCamera(int index, GameObject player, Rect viewport)

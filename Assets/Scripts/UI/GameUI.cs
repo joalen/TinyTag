@@ -44,7 +44,7 @@ public class GameUI : MonoBehaviour
         if (hudRoot.activeSelf) UpdateHud(state);
         if (endPanel.activeSelf && gm.WinnerIndex >= 0)
         {
-            winnerText.text = $"PLAYER {gm.WinnerIndex + 1} WINS!";
+            winnerText.text = $"THE {gm.players[gm.WinnerIndex].displayName} WINS!";
             winnerText.color = gm.players[gm.WinnerIndex].normalColor;
         }
     }
@@ -121,7 +121,8 @@ public class GameUI : MonoBehaviour
         {
             float x0 = i * 0.5f, x1 = x0 + 0.5f;
             // P1 label on the far left, P2 on the far right, so neither hits the centre timer
-            var name = Label(hudRoot.transform, $"PLAYER {i + 1}", 36, Color.white, i == 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight);
+            string who = i < gm.players.Length ? gm.players[i].displayName : "";
+            var name = Label(hudRoot.transform, $"P{i + 1}  {who}", 36, Color.white, i == 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight);
             Place(name.rectTransform, new Vector2(x0, 1f), new Vector2(x1, 1f), new Vector2(30, -80), new Vector2(-30, -20));
 
             statusTexts[i] = Label(hudRoot.transform, "", 44, Color.white, TextAnchor.LowerCenter);
@@ -140,12 +141,12 @@ public class GameUI : MonoBehaviour
         var title = Label(menuPanel.transform, "TINY TAG", 160, ButtonColor);
         title.gameObject.AddComponent<Outline>().effectDistance = new Vector2(6, -6);
         Place(title.rectTransform, new Vector2(0f, 0.68f), new Vector2(1f, 0.92f), Vector2.zero, Vector2.zero);
-        var sub = Label(menuPanel.transform, "You're tiny. The bedroom is huge. Don't be \"it\" when time runs out!", 34, Color.white);
+        var sub = Label(menuPanel.transform, "A rubber duck and a rubber frog. One huge bedroom. Don't be \"it\" when time runs out!", 34, Color.white);
         Place(sub.rectTransform, new Vector2(0f, 0.62f), new Vector2(1f, 0.69f), Vector2.zero, Vector2.zero);
 
         var controls = Label(menuPanel.transform,
-            "<b>PLAYER 1</b>   WASD move · Space jump · Left Shift sprint · hold E climb · Mouse look\n" +
-            "<b>PLAYER 2</b>   Arrows move · Right Ctrl (or Numpad 0) jump · Right Shift sprint · hold / climb\n" +
+            "<b>P1 DUCK</b>   WASD move · Space jump · Left Shift sprint · hold E climb · Mouse look\n" +
+            "<b>P2 FROG</b>   Arrows move · Right Ctrl (or Numpad 0) jump · Right Shift sprint · hold / climb\n" +
             "<b>GAMEPADS</b>   Left stick move · A jump · LT sprint · hold RT climb · Right stick look\n\n" +
             "Whoever is \"it\" has a red diamond over their head. Climb furniture: walk into it and hold climb.",
             28, new Color(0.85f, 0.85f, 0.9f));
