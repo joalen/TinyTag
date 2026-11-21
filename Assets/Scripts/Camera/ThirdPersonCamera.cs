@@ -20,6 +20,8 @@ public class ThirdPersonCamera : MonoBehaviour
     [Header("Look")]
     public float mouseSensitivity = 0.12f;
     public float stickSensitivity = 160f;
+    [Tooltip("Degrees per second when turning the camera with keys (Q/E or comma/period)")]
+    public float keyTurnSpeed = 140f;
     [Tooltip("Seconds without look input before the camera swings behind the player")]
     public float autoAlignDelay = 1.5f;
     public float autoAlignSpeed = 90f;
@@ -53,6 +55,13 @@ public class ThirdPersonCamera : MonoBehaviour
         float dt = Time.deltaTime;
 
         Vector2 look = input != null && input.enabled ? input.Look : Vector2.zero;
+        float keyTurn = input != null && input.enabled ? input.CameraTurn : 0f;
+        if (Mathf.Abs(keyTurn) > 0.01f)
+        {
+            yaw += keyTurn * keyTurnSpeed * dt;
+            lastLookTime = Time.time; // don't auto-swing back right after a manual turn
+        }
+
         if (look.sqrMagnitude > 0.0001f)
         {
             float scale = input.LookIsMouse ? mouseSensitivity : stickSensitivity * dt;

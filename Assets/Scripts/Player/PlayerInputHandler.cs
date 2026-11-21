@@ -7,8 +7,8 @@ using UnityEngine.InputSystem;
 /// action asset, filtered to its own half of the keyboard and its own gamepad,
 /// so two players can share one keyboard without controlling each other.
 ///
-/// Player 0: WASD, Space jump, Left Shift sprint, E climb, mouse look, gamepad #1
-/// Player 1: Arrows, Right Ctrl / Numpad 0 jump, Right Shift sprint, / climb, gamepad #2
+/// Player 0: WASD, Space jump, Left Shift sprint, F climb, Q/E turn camera, mouse look, gamepad #1
+/// Player 1: Arrows, Right Ctrl / Numpad 0 jump, Right Shift sprint, / climb, comma/period turn camera, gamepad #2
 /// </summary>
 public class PlayerInputHandler : MonoBehaviour
 {
@@ -21,13 +21,15 @@ public class PlayerInputHandler : MonoBehaviour
     public InputActionAsset actionsAsset;
 
     InputActionAsset actions;
-    InputAction move, look, jump, sprint, climb;
+    InputAction move, look, jump, sprint, climb, cameraTurn;
 
     public Vector2 Move => move.ReadValue<Vector2>();
     public Vector2 Look => look.ReadValue<Vector2>();
     public bool JumpPressed => jump.WasPressedThisFrame();
     public bool SprintHeld => sprint.IsPressed();
     public bool ClimbHeld => climb.IsPressed();
+    /// <summary>Keyboard camera turning: -1 left, +1 right (Q/E for P1, comma/period for P2).</summary>
+    public float CameraTurn => cameraTurn.ReadValue<float>();
 
     /// <summary>True when the latest look input came from the mouse (pixels per frame, not a stick value).</summary>
     public bool LookIsMouse => look.activeControl != null && look.activeControl.device is Mouse;
@@ -53,6 +55,7 @@ public class PlayerInputHandler : MonoBehaviour
         jump = map.FindAction("Jump", true);
         sprint = map.FindAction("Sprint", true);
         climb = map.FindAction("Climb", true);
+        cameraTurn = map.FindAction("CameraTurn", true);
 
         AssignDevices();
     }

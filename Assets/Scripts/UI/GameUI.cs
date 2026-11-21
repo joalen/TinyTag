@@ -145,8 +145,8 @@ public class GameUI : MonoBehaviour
         Place(sub.rectTransform, new Vector2(0f, 0.62f), new Vector2(1f, 0.69f), Vector2.zero, Vector2.zero);
 
         var controls = Label(menuPanel.transform,
-            "<b>P1 DUCK</b>   WASD move · Space jump · Left Shift sprint · hold E climb · Mouse look\n" +
-            "<b>P2 FROG</b>   Arrows move · Right Ctrl (or Numpad 0) jump · Right Shift sprint · hold / climb\n" +
+            "<b>P1 DUCK</b>   WASD move · Space jump · Left Shift sprint · hold F climb · Q / E turn camera (or mouse)\n" +
+            "<b>P2 FROG</b>   Arrows move · Right Ctrl (or Numpad 0) jump · Right Shift sprint · hold / climb · , / . turn camera\n" +
             "<b>GAMEPADS</b>   Left stick move · A jump · LT sprint · hold RT climb · Right stick look\n\n" +
             "Whoever is \"it\" has a red diamond over their head. Climb furniture: walk into it and hold climb.",
             28, new Color(0.85f, 0.85f, 0.9f));
