@@ -8,7 +8,7 @@ In our version, a rubber duck and a rubber frog face off in local split-screen i
 ## How to Play
 - One player starts as **"it"** at random, marked by a spinning red diamond above their head.
 - Touch the other player to tag them and pass "it" on. The tagged player is frozen briefly, and there's a short cooldown so you can't tag straight back.
-- "It" moves slightly faster so they can catch up.
+- "It" moves slightly faster so they can catch up, and sees an arrow pointing to the other player (above their head when in view, on the screen edge when not).
 - Each round lasts **90 seconds**. Whoever is **not** "it" when time runs out wins.
 
 ## Controls
