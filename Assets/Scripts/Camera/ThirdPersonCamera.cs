@@ -60,7 +60,7 @@ public class ThirdPersonCamera : MonoBehaviour
             pitch -= look.y * scale;
             lastLookTime = Time.time;
         }
-        else if (Time.time - lastLookTime > autoAlignDelay && IsTargetMoving())
+        else if (Time.time - lastLookTime > autoAlignDelay && IsMovingRoughlyForward())
         {
             yaw = Mathf.MoveTowardsAngle(yaw, target.eulerAngles.y, autoAlignSpeed * dt);
         }
@@ -80,10 +80,15 @@ public class ThirdPersonCamera : MonoBehaviour
         transform.SetPositionAndRotation(pivot + back * currentDistance, rot);
     }
 
-    bool IsTargetMoving()
+    // Only swing behind the player when they're heading away from the camera
+    // (forward / diagonal). Strafing or backing up keeps the camera still, otherwise
+    // holding left/right would make player and camera chase each other in circles.
+    bool IsMovingRoughlyForward()
     {
         if (targetBody == null) return false;
         Vector3 v = targetBody.linearVelocity; v.y = 0f;
-        return v.sqrMagnitude > 0.5f;
+        if (v.sqrMagnitude < 0.5f) return false;
+        Vector3 camForward = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+        return Vector3.Angle(v, camForward) < 60f;
     }
 }

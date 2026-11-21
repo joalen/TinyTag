@@ -40,7 +40,13 @@ public class GameManager : MonoBehaviour
 
     void Awake() => Instance = this;
 
-    void Start() => GoToMenu();
+    void Start()
+    {
+        // each player moves relative to their own camera
+        for (int i = 0; i < players.Length && i < playerCameras.Length; i++)
+            if (playerCameras[i] != null) players[i].Movement.mainCamera = playerCameras[i].transform;
+        GoToMenu();
+    }
 
     void Update()
     {

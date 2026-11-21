@@ -246,11 +246,17 @@ public static class TinyTagSceneBuilder
         go.transform.SetPositionAndRotation(spawn.position, spawn.rotation);
         go.transform.localScale = Vector3.one * PlayerScale;
         go.layer = PlayerLayer;
-        go.GetComponent<PlayerMovement>().moveSpeed = PlayerMoveSpeed;
+        var movement = go.GetComponent<PlayerMovement>();
+        movement.moveSpeed = PlayerMoveSpeed;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(movement);
 
         // the capsule stays as the collider, but is hidden: the toy model below is what you see
-        go.GetComponent<MeshRenderer>().enabled = false;
-        go.GetComponent<CapsuleCollider>().sharedMaterial = NoFriction();
+        var capsuleRenderer = go.GetComponent<MeshRenderer>();
+        capsuleRenderer.enabled = false;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(capsuleRenderer);
+        var capsule = go.GetComponent<CapsuleCollider>();
+        capsule.sharedMaterial = NoFriction();
+        PrefabUtility.RecordPrefabInstancePropertyModifications(capsule);
 
         // model pivot sits at the feet so squash/stretch keeps it on the ground
         var model = new GameObject(index == 0 ? "Duck Model" : "Frog Model").transform;
@@ -351,7 +357,12 @@ public static class TinyTagSceneBuilder
         var behind = player.transform.position - player.transform.forward * follow.distance + Vector3.up * 2.5f;
         go.transform.SetPositionAndRotation(behind, Quaternion.LookRotation(player.transform.position - behind));
 
-        player.GetComponent<PlayerMovement>().mainCamera = go.transform;
+        // Player is a prefab instance: field changes made from editor code must be recorded
+        // as overrides, or they're silently dropped when the scene is saved (this player would
+        // then fall back to Camera.main = P1's camera and steer relative to the wrong view).
+        var movement = player.GetComponent<PlayerMovement>();
+        movement.mainCamera = go.transform;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(movement);
         return follow;
     }
 
