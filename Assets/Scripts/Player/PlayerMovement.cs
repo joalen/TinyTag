@@ -1,17 +1,16 @@
-using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class PlayerMovement : MonoBehaviour
 {
     [Header("References")]
+    [Tooltip("This player's camera; movement is relative to it. Falls back to Camera.main.")]
     public Transform mainCamera;
 
     [Header("Movement")]
     public float moveSpeed = 6f;
     public float turnSpeed = 12f;
     public float sprintMultiplier = 1.6f;
-    public KeyCode sprintKey = KeyCode.LeftShift;
 
     [Header("Jumping")]
     public float jumpForce = 7f;
@@ -26,15 +25,29 @@ public class PlayerMovement : MonoBehaviour
     public float maxStamina = 5f;
     public float ledgeHopUp = 7f;
     public float ledgeHopForward = 4f;
-    public KeyCode climbKey = KeyCode.E;
     public LayerMask climbMask;
 
-    /* 
+    [Header("Game control")]
+    [Tooltip("Set by the GameManager: off during menus, countdown, and after being tagged")]
+    public bool controlsEnabled = true;
+    public float speedMultiplier = 1f;
+
+    /// <summary>Fired on every jump (ground jump and wall jump), e.g. for the squeak sound.</summary>
+    public event System.Action Jumped;
+
+    public float Stamina => stamina;
+    public bool IsClimbing => climbing;
+    public bool IsGrounded => grounded;
+
+    /*
      * Game state vars
      */
     Rigidbody rigidBody;
     CapsuleCollider capsule;
+    PlayerInputHandler playerInput;
     Vector2 input;
+    bool sprintHeld;
+    bool climbHeld;
     bool jumpPressed;
     bool grounded;
     float coyoteCounter;
@@ -53,13 +66,43 @@ public class PlayerMovement : MonoBehaviour
         rigidBody.interpolation = RigidbodyInterpolation.Interpolate;
         rigidBody.collisionDetectionMode = CollisionDetectionMode.Continuous;
         stamina = maxStamina;
+
+        playerInput = GetComponent<PlayerInputHandler>();
+        if (playerInput == null) playerInput = gameObject.AddComponent<PlayerInputHandler>();
+
+        if (mainCamera == null && Camera.main != null) mainCamera = Camera.main.transform;
+
+        // tops of climbable furniture are also walkable ground
+        groundMask |= climbMask;
+    }
+
+    /// <summary>Teleport to a spawn point and clear all movement state.</summary>
+    public void ResetTo(Vector3 position, Quaternion rotation)
+    {
+        if (climbing) StopClimbing();
+        rigidBody.position = position;
+        rigidBody.rotation = rotation;
+        transform.SetPositionAndRotation(position, rotation);
+        rigidBody.linearVelocity = Vector3.zero;
+        stamina = maxStamina;
+        input = Vector2.zero;
+        jumpPressed = false;
     }
 
     void Update()
     {
-        input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        if (!playerInput.enabled || !controlsEnabled)
+        {
+            input = Vector2.zero;
+            sprintHeld = climbHeld = false;
+            return;
+        }
 
-        if (Input.GetButtonDown("Jump")) jumpPressed = true;
+        input = Vector2.ClampMagnitude(playerInput.Move, 1f);
+        sprintHeld = playerInput.SprintHeld;
+        climbHeld = playerInput.ClimbHeld;
+
+        if (playerInput.JumpPressed) jumpPressed = true; // consumed in FixedUpdate
     }
 
     void FixedUpdate()
@@ -100,13 +143,14 @@ public class PlayerMovement : MonoBehaviour
 
     void Move()
     {
-        Vector3 fwd = mainCamera.forward; fwd.y = 0; fwd.Normalize();
-        Vector3 right = mainCamera.right; right.y = 0; right.Normalize();
-        Vector3 dir = (fwd * input.y + right * input.x).normalized;
+        Transform view = mainCamera != null ? mainCamera : transform;
+        Vector3 fwd = view.forward; fwd.y = 0; fwd.Normalize();
+        Vector3 right = view.right; right.y = 0; right.Normalize();
+        // keep analog stick magnitude so a light push walks slowly
+        Vector3 dir = Vector3.ClampMagnitude(fwd * input.y + right * input.x, 1f);
 
-        // left sprinting
-        float speed = moveSpeed;
-        if (Input.GetKey(sprintKey)) speed *= sprintMultiplier;
+        float speed = moveSpeed * speedMultiplier;
+        if (sprintHeld) speed *= sprintMultiplier;
 
         Vector3 vel = rigidBody.linearVelocity;
         if (controlLock <= 0f)
@@ -131,6 +175,7 @@ public class PlayerMovement : MonoBehaviour
             vel.y = jumpForce;
             rigidBody.linearVelocity = vel;
             coyoteCounter = 0f; // use up window to prevent double jump
+            Jumped?.Invoke();
         }
     }
 
@@ -145,7 +190,7 @@ public class PlayerMovement : MonoBehaviour
     void CheckClimb()
     {
         bool wallAhead = Physics.Raycast(capsule.bounds.center, transform.forward, out wallHit, climbCheckDist, climbMask);
-        bool holding = Input.GetKey(climbKey);
+        bool holding = climbHeld;
 
         if (!climbing && wallAhead && holding && stamina > 0f && regrabTimer <= 0f) // only if enough stamina and didn't just let go
         {
@@ -154,13 +199,13 @@ public class PlayerMovement : MonoBehaviour
 
         if (!climbing) return;
 
-        if (!holding || stamina <= 0f || !wallAhead) // ran out of stamina or sliding from wall
+        if (!holding || stamina <= 0f) // let go or ran out of stamina
         {
             StopClimbing();
             return;
         }
 
-        // ledge climbing
+        // wall ended under us: climbed past the top edge -> hop over it, otherwise slid off the side
         if (!wallAhead)
         {
             if (input.y > 0f) LedgeHop();
@@ -189,6 +234,7 @@ public class PlayerMovement : MonoBehaviour
             StopClimbing();
             rigidBody.linearVelocity = wallHit.normal * wallJumpPush + Vector3.up * jumpForce;
             controlLock = 0.25f;
+            Jumped?.Invoke();
         }
     }
 
@@ -204,11 +250,5 @@ public class PlayerMovement : MonoBehaviour
         StopClimbing();
         rigidBody.linearVelocity = transform.forward * ledgeHopForward + Vector3.up * ledgeHopUp;
         controlLock = 0.3f;
-    }
-
-
-    void OnGUI()
-    {
-        GUI.Label(new Rect(10, 10, 250, 25), "Stamina: " + stamina.ToString("0.0"));
     }
 }
